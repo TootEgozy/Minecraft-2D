@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft 2D</title>
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background-image: url("images/daySky.png");
+            background-position: cover; 
+            background-size: cover; 
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            display: grid;
+            grid-gap: 0;
+            animation-name: dayNight;
+            animation-duration: 30s;
+            animation-delay: 10s;
+            animation-direction: alternate;
+            animation-iteration-count: infinite;
+
+        }
+        @keyframes dayNight {
+           from {background-image: url("images/daySky.png");}
+            to {background-image: url("images/nightSky.png");}        
+        }
+/*     
+
+        .wrapper {
+            display: grid;
+            grid-template-columns: 1fr repeat(5);
+            grid-template-rows: 1fr;
+        } */
+
+
+        .world {
+            display: grid;
+            grid-gap: 0px;
+            position: fixed;
+            bottom: 0;
+            width: 100%; 
+            overflow: scroll;
+            /* grid-column: 1 / span 4; */
+        }
+
+        .world-piece:hover {
+            outline: 1px solid #fff;
+            outline-offset: -1px;
+        }
+
+        .side-bar {
+            background: rgb(10, 10, 10);
+            width: 15rem;
+            height: 98vh;
+            position: fixed;
+            right: 0;
+            /* grid-column: 5 / span 1; */
+            outline: 10px solid rgba(48, 48, 48, 0.5);
+            outline-offset: -20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2rem;
+        }
+
+        .pickaxe {
+            width: 80px;
+            height: 120px;
+            background-color: rgba(48, 48, 48, 0.2);
+            background-image: url(images/pickaxe.png);
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-size: auto; 
+            margin: 1rem;
+            box-shadow: 5px 5px 10px black;
+        }
+
+        .axe {
+            width: 80px;
+            height: 120px;
+            background-color: rgba(48, 48, 48, 0.2);
+            background-image: url(images/axe.png);
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-size: auto; 
+            margin: 1rem;
+            box-shadow: 5px 5px 10px black;
+        }
+
+        .shovel {
+            width: 80px;
+            height: 120px;
+            background-color: rgba(48, 48, 48, 0.2);
+            background-image: url(images/shovel.png);
+            background-position: center; 
+            background-repeat: no-repeat; 
+            background-size:auto; 
+            margin: 1rem;
+            box-shadow: 5px 5px 10px black;
+            margin-bottom: 5rem;
+        }
+
+        .dirt-inventory,
+        .rock-inventory,
+        .wood-inventory {
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 16px;
+            margin-top: 2rem;
+            padding: 3px;
+            text-align: center;
+        }
+        
+        .dirt-inventory:hover,
+        .rock-inventory:hover,
+        .wood-inventory:hover {
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 16px;
+            margin-top: 2rem;
+            outline: 1px solid #fff;
+            outline-offset: -1px;
+            padding: 3px;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="world"></div>
+        <div class="side-bar">
+            <div class="pickaxe"></div>
+            <div class="axe"></div>
+            <div class="shovel"></div>
+            <div class="dirt-inventory"></div>
+            <div class="rock-inventory"></div>
+            <div class="wood-inventory"></div>
+        </div>
+    </div>
+
+
+    <script>
+
+        const totalRows = 20;
+        const totalColumns = 40;
+
+        //function for the event listener, to remove a div
+        // let dirtCountElement = document.querySelector(".dirt-count");
+        // dirtCountElement.style.width = "50px";
+        // dirtCountElement.style.height = "50px";
+        // dirtCountElement.style.fontSize = "20px";
+        // dirtCountElement.style.color = "white";
+        // dirtCountElement.style.textAlign = "center";
+        // let dirtCounter = 0;
+        // function removeDiv (e) {
+        //     e.target.remove();
+        //     dirtCounter++;
+        //     if (dirtCounter > 0) {
+        //         dirtCountElement.innerHTML = dirtCounter;
+        //         dirtCountElement.style.backworldImage = `url(${dirt})`;
+        //     }
+        //     console.log(e.target.gridRow);
+        //     console.log(e.target.gridColumn);
+        // }
+
+        //A one - dimentional array, that represents a matrix
+     
+
+
+        /////////////////////////////////////////////////////
+
+        //elements are strings, to use as backgroung url's
+        let world = document.querySelector(".world");
+        let sideBar = document.querySelector(".side-bar");
+        let dirt = "images/dirt.png";
+        let grass = "images/dirtAndGrass.png";
+        let rock = "images/stone.png";
+        let wood = "images/wood.png";
+        let leaves = "images/leaves.png";
+        let empty = "";
+        let inventory = {};
+        inventory[dirt] = 0;
+        inventory[rock] = 0;
+        inventory[wood] = 0;
+
+        //tool flags
+        let pickaxeFlag = false;
+        let axeFlag = false;
+        let shovelFlag = false;
+
+        //tools selections & event
+        let pickaxe = document.querySelector(".pickaxe");
+        let axe = document.querySelector(".axe");
+        let shovel = document.querySelector(".shovel");
+
+
+        let toolToBeUsed = null;
+
+        pickaxe.id = "pickaxe";
+        axe.id = "axe";
+        shovel.id = "shovel";
+
+        function toolPicked (e) {
+            if (e.target == pickaxe) {
+                pickaxe.style.border = "3px solid blue";
+                pickaxeFlag = true;
+                axeFlag = false;
+                axe.style.border = "none";
+                shovelFlag = false;
+                shovel.style.border = "none";
+            }            
+            else if (e.target == axe) {
+                axe.style.border = "3px solid blue";
+                axeFlag = true;
+                picaxeFlag = false;
+                pickaxe.style.border = "none";
+                shovelFlag = false;
+                shovel.style.border = "none";
+            }            
+            else if (e.target == shovel) {
+                shovel.style.border = "3px solid blue";
+                shovelFlag = true;
+                axeFlag = false;
+                axe.style.border = "none";
+                pickaxeFlag = false;
+                pickaxe.style.border = "none";
+            }      
+            
+            toolToBeUsed = e.target;
+        }
+
+        //materials selection & event
+        // let rockCounter = 0;
+        // let dirtCounter = 0;
+        // let woodCounter = 0;
+
+        //show materials in bar only if counter is > 0
+        function updateImgInventory () {
+            let imgDirtInventory = document.querySelector(".dirt-inventory");
+            if (inventory[dirt] > 0 ) {
+                imgDirtInventory.innerHTML = inventory[dirt];
+                imgDirtInventory.style.backgroundImage = `url(${dirt})`;
+            }
+            imgDirtInventory.addEventListener("click", clickedOnGrid);
+            
+            let imgRockInventory = document.querySelector(".rock-inventory");
+            if (inventory[rock] > 0 ) {
+                imgRockInventory.innerHTML = inventory[rock];
+                imgRockInventory.style.backgroundImage = `url(${rock})`;
+            }
+            imgRockInventory.addEventListener("click", clickedOnGrid);
+
+            let imgWoodInventory = document.querySelector(".wood-inventory");
+            if (inventory[wood] > 0 ) {    
+                imgWoodInventory.innerHTML = inventory[wood];
+                imgWoodInventory.style.backgroundImage = `url(${wood})`;
+            }
+            imgWoodInventory.addEventListener("click", clickedOnGrid);
+        }
+
+        function materialPicked(e) {
+
+            let row = e.target.style.gridRow;
+            let col = e.target.style.gridColumn;
+
+            if (e.target == dirt && inventory[dirt] > 0) {
+                inventory[dirt]--;
+            }
+            else if (e.target == rock && inventory[rock] > 0) {
+                inventory[rock]--;
+            }
+            else if (e.target == wood && inventory[wood] > 0) {
+                inventory--;
+            }
+        }
+
+        pickaxe.addEventListener('click', toolPicked);
+        axe.addEventListener('click', toolPicked);
+        shovel.addEventListener('click', toolPicked);
+
+
+        //variables for the initWorld function
+
+        let  row = 1;
+        let  column = 0;
+
+        //generate a world
+        function initworld() {
+
+            world.style.gridColumn = totalColumns;
+            world.style.gridRow = totalRows;
+
+            for (let  i = 0; i < (totalRows*totalColumns); i++) {
+                    let div = document.createElement("div");
+                    world.insertAdjacentElement('beforeend', div);
+                    div.style.backgroundImage = `url(${empty})`;
+                    if (row < 16) div.style.backgroundImage = `url(${empty})`;
+                    else if (row == 16) div.style.backgroundImage = `url(${grass})`;
+                    else div.style.backgroundImage = `url(${dirt})`;
+                    div.style.width = "50px";
+                    div.style.height = "50px";
+                    div.style.gridRow = row;
+                    div.style.gridColumn = column;
+                    div.classList.add("world-piece");
+                    div.id = i;
+                    div.addEventListener('click', clickedOnGrid);
+                
+                    column += 1;
+
+                if (column == totalColumns) {
+                    row += 1;
+                    column = 0;
+                }
+            }
+                
+        }
+
+        initworld();
+        placeTree(8,10);
+        placeRocks(9, 1);
+        placerocks2(12, 18)
+
+
+        function placeTree(upRow,leftCol) {
+        // @@@@@@
+        //@@@@@@@@
+        //@@@@@@@@
+        // @@@@@@  
+        //   ##
+        //   ###
+        //  ###
+        //   ##
+            row = parseInt(upRow);
+            col = parseInt(leftCol);
+
+            placeMaterial(row,col+1,leaves);
+            placeMaterial(row,col+2,leaves);
+            placeMaterial(row,col+3,leaves);
+            placeMaterial(row,col+4,leaves);          
+            placeMaterial(row,col+5,leaves);          
+            placeMaterial(row,col+6,leaves);
+            
+            placeMaterial(row+1,col,leaves);
+            placeMaterial(row+1,col+1,leaves);
+            placeMaterial(row+1,col+2,leaves);
+            placeMaterial(row+1,col+3,leaves);
+            placeMaterial(row+1,col+4,leaves);
+            placeMaterial(row+1,col+5,leaves);
+            placeMaterial(row+1,col+6,leaves);
+            placeMaterial(row+1,col+7,leaves);
+
+            placeMaterial(row+2,col,leaves);
+            placeMaterial(row+2,col+1,leaves);
+            placeMaterial(row+2,col+2,leaves);
+            placeMaterial(row+2,col+3,leaves);
+            placeMaterial(row+2,col+4,leaves);
+            placeMaterial(row+2,col+5,leaves);
+            placeMaterial(row+2,col+6,leaves);
+            placeMaterial(row+2,col+7,leaves);
+
+            placeMaterial(row+3,col+1,leaves);
+            placeMaterial(row+3,col+2,leaves);
+            placeMaterial(row+3,col+3,leaves);
+            placeMaterial(row+3,col+4,leaves);
+            placeMaterial(row+3,col+5,leaves);
+            placeMaterial(row+3,col+6,leaves); 
+
+            placeMaterial(row+4,col+3,wood);
+            placeMaterial(row+4,col+4,wood);
+
+            placeMaterial(row+5,col+3,wood);
+            placeMaterial(row+5,col+4,wood);
+            placeMaterial(row+5,col+5,wood)
+
+            placeMaterial(row+6,col+2,wood);
+            placeMaterial(row+6,col+3,wood);
+            placeMaterial(row+6,col+4,wood);
+
+            placeMaterial(row+7,col+3,wood);
+            placeMaterial(row+7,col+4,wood);
+
+        }
+
+        function placeRocks(upRow,leftCol) {
+            //@@
+            //@@@
+            //@@@@@
+            //@@@@@
+            //@@@@@@
+            //@@@@@@
+            //@@@@@@@@
+            row = parseInt(upRow);
+            col = parseInt(leftCol);
+
+            placeMaterial(row,col,rock);
+            placeMaterial(row,col+1,rock);
+
+            placeMaterial(row+1,col,rock);
+            placeMaterial(row+1,col+1,rock);
+            placeMaterial(row+1,col+2,rock);
+
+            placeMaterial(row+2,col,rock);
+            placeMaterial(row+2,col+1,rock);
+            placeMaterial(row+2,col+2,rock);
+            placeMaterial(row+2,col+3,rock);
+            placeMaterial(row+2,col+4,rock);
+
+            placeMaterial(row+3,col,rock);
+            placeMaterial(row+3,col+1,rock);
+            placeMaterial(row+3,col+2,rock);
+            placeMaterial(row+3,col+3,rock);
+            placeMaterial(row+3,col+4,rock);
+
+            placeMaterial(row+4,col,rock);
+            placeMaterial(row+4,col+1,rock);
+            placeMaterial(row+4,col+2,rock);
+            placeMaterial(row+4,col+3,rock);
+            placeMaterial(row+4,col+4,rock);
+            placeMaterial(row+4,col+5,rock);
+
+            placeMaterial(row+5,col,rock);
+            placeMaterial(row+5,col+1,rock);
+            placeMaterial(row+5,col+2,rock);
+            placeMaterial(row+5,col+3,rock);
+            placeMaterial(row+5,col+4,rock);
+            placeMaterial(row+5,col+5,rock);
+
+            placeMaterial(row+6,col,rock);
+            placeMaterial(row+6,col+1,rock);
+            placeMaterial(row+6,col+2,rock);
+            placeMaterial(row+6,col+3,rock);
+            placeMaterial(row+6,col+4,rock);
+            placeMaterial(row+6,col+5,rock);
+            placeMaterial(row+6,col+6,rock);
+        }
+
+        function placerocks2 (upRow,leftCol) {
+            //
+            //@@@@
+            //@ @ @
+            //@@@@@
+            //@@ @@   
+            row = parseInt(upRow);
+            col = parseInt(leftCol);
+
+            placeMaterial(row,col,rock);
+            placeMaterial(row,col+1,rock);
+            placeMaterial(row,col+2,rock);
+            placeMaterial(row,col+3,rock);
+            placeMaterial(row,col+4,rock);
+
+            placeMaterial(row+1,col,rock);
+            placeMaterial(row+1,col+2,rock);
+            placeMaterial(row+1,col+4,rock);
+
+            placeMaterial(row+2,col,rock);
+            placeMaterial(row+2,col+1,rock);
+            placeMaterial(row+2,col+2,rock);
+            placeMaterial(row+2,col+3,rock);
+            placeMaterial(row+2,col+4,rock);
+
+            placeMaterial(row+3,col,rock);
+            placeMaterial(row+3,col+1,rock);
+            placeMaterial(row+3,col+3,rock);
+            placeMaterial(row+3,col+4,rock);
+        }
+
+        function removeMaterial(_row,_col) {
+            let myCol = parseInt(_col);
+            let myRow = parseInt(_row);
+
+            let materialRemoved = checkGrid(myRow,myCol);
+            // console.log(materialRemoved);
+            // inventory[materialRemoved]++;
+            if (materialRemoved == "images/stone.png") inventory[rock]+=1;
+            if (materialRemoved == "images/dirt.png" || materialRemoved === "images/dirtAndGrass.png") inventory[dirt]+=1;
+            if (materialRemoved == "images/wood.png") inventory[wood]+=1;
+
+            // console.log("removed rock "+inventory[rock]);
+            // console.log("removed dirt "+inventory[dirt]);
+            // console.log("removed wood "+inventory[wood]);
+
+            updateGrid(myRow,myCol,empty);
+
+            if (checkGrid(myRow+1,myCol) === dirt)
+                updateGrid(myRow+1,myCol,grass);
+        }
+
+        function placeMaterial(_row,_col,_material) {
+            let myCol = parseInt(_col);
+            let myRow = parseInt(_row);
+
+            //maybe check inventory here as well
+            //check that there is material one square below, otherwise we are placing on thin air
+            //if (checkGrid(myRow+1,myCol) === empty) return null;
+
+            // console.log("At placeMaterial! checkGrid: "+checkGrid(myRow,myCol));
+
+            //if we're placing dirt and there's air above, it turns into grass.
+            if (_material === dirt && checkGrid(myRow-1,myCol) === empty) updateGrid(myRow,myCol,grass);
+            else updateGrid(myRow,myCol,_material); 
+
+            //if there was grass underneath, turn it into dirt
+            if (checkGrid(myRow+1,myCol) === grass) updateGrid(myRow+1,myCol,dirt);
+        }
+
+        function imageToMaterial(backgroundImageURL) {
+            return backgroundImageURL.split('"')[1];
+        }
+
+        function checkGrid(_row,_col) {
+            let myCol = parseInt(_col);
+            let myRow = parseInt(_row);
+            myRow--; //adjustment from 1-based grid to 0-based logical ID 
+
+            let divID = myRow*totalColumns+myCol;
+            // console.log("At checkGrid!");
+            // console.log("_row: "+_row+" _col: "+_col+" divID: "+divID+" myRow: "+myRow+" myCol: "+myCol);
+
+            let div = document.getElementById(divID);
+            let material = div.style.backgroundImage.split('"')[1];
+            // let material = imageToMaterial(div.style.backgroundImage);
+            // console.log("Material: "+material);
+            
+            return material;
+        }
+
+        function updateGrid(_row,_col,_material) {
+            let myCol = parseInt(_col);
+            let myRow = parseInt(_row);
+            myRow--; //adjustment from 1-based grid to 0-based logical ID 
+
+            let divID = myRow*totalColumns+myCol;
+            let div = document.getElementById(divID);
+
+            // console.log("At updateGrid! Row: "+div.style.gridRow+" Col: "+div.style.gridColumn+" Material: "+_material);
+            div.style.backgroundImage = `url(${_material})`;
+
+            checkGrid(_row,_col);
+        }
+
+        let material = dirt;
+        
+        function clickedOnGrid (e) {
+            let row = e.target.style.gridRow;
+            let col = e.target.style.gridColumn;
+
+            if ((toolToBeUsed === pickaxe && checkGrid(row,col) === rock) ||
+               (toolToBeUsed === shovel && (checkGrid(row,col) === dirt || checkGrid(row,col) === grass)) ||
+               (toolToBeUsed === axe && (checkGrid(row,col) === wood || checkGrid(row,col) === leaves))){
+                    removeMaterial(row,col);
+                 
+            }
+            else
+                if (toolToBeUsed === dirt || toolToBeUsed == rock || toolToBeUsed === wood) {
+                    console.log(toolToBeUsed);
+                    placeMaterial(row,col,toolToBeUsed);
+                }
+                
+            updateImgInventory();
+            //console.log("at clickedOnGrid!!! row="+row+" col="+col);
+
+            //placeMaterial(row,col,material);
+            //removeMaterial(row,col);
+
+        }
+
+    </script>
+</body>
+</html>
