@@ -192,17 +192,15 @@
         inventory[rock] = 0;
         inventory[wood] = 0;
 
-        //tool flags
-        let pickaxeFlag = false;
-        let axeFlag = false;
-        let shovelFlag = false;
-
         //tools selections & event
         let pickaxe = document.querySelector(".pickaxe");
         let axe = document.querySelector(".axe");
         let shovel = document.querySelector(".shovel");
+        let imgDirtInventory = document.querySelector(".dirt-inventory");
+        let imgRockInventory = document.querySelector(".rock-inventory");
+        let imgWoodInventory = document.querySelector(".wood-inventory");
 
-
+        //flags the tool or material to be used (pickaxe/shovel/axe for removal or dirt/rock/wood for placement)
         let toolToBeUsed = null;
 
         pickaxe.id = "pickaxe";
@@ -210,31 +208,17 @@
         shovel.id = "shovel";
 
         function toolPicked (e) {
-            if (e.target == pickaxe) {
-                pickaxe.style.border = "3px solid blue";
-                pickaxeFlag = true;
-                axeFlag = false;
-                axe.style.border = "none";
-                shovelFlag = false;
-                shovel.style.border = "none";
-            }            
-            else if (e.target == axe) {
-                axe.style.border = "3px solid blue";
-                axeFlag = true;
-                picaxeFlag = false;
-                pickaxe.style.border = "none";
-                shovelFlag = false;
-                shovel.style.border = "none";
-            }            
-            else if (e.target == shovel) {
-                shovel.style.border = "3px solid blue";
-                shovelFlag = true;
-                axeFlag = false;
-                axe.style.border = "none";
-                pickaxeFlag = false;
-                pickaxe.style.border = "none";
-            }      
+
+            axe.style.border = "none";
+            shovel.style.border = "none";
+            pickaxe.style.border = "none";
+
+            imgDirtInventory.style.border = "none";
+            imgRockInventory.style.border = "none";
+            imgWoodInventory.style.border = "none";
             
+            e.target.style.border = "3px solid blue";
+
             toolToBeUsed = e.target;
         }
 
@@ -245,48 +229,58 @@
 
         //show materials in bar only if counter is > 0
         function updateImgInventory () {
-            let imgDirtInventory = document.querySelector(".dirt-inventory");
             if (inventory[dirt] > 0 ) {
                 imgDirtInventory.innerHTML = inventory[dirt];
                 imgDirtInventory.style.backgroundImage = `url(${dirt})`;
+            } else {
+                imgDirtInventory.innerHTML = "";
+                imgDirtInventory.style.backgroundImage = "";
             }
-            imgDirtInventory.addEventListener("click", clickedOnGrid);
             
-            let imgRockInventory = document.querySelector(".rock-inventory");
             if (inventory[rock] > 0 ) {
                 imgRockInventory.innerHTML = inventory[rock];
                 imgRockInventory.style.backgroundImage = `url(${rock})`;
+            } else {
+                imgRockInventory.innerHTML = "";
+                imgRockInventory.style.backgroundImage = "";
             }
-            imgRockInventory.addEventListener("click", clickedOnGrid);
 
-            let imgWoodInventory = document.querySelector(".wood-inventory");
             if (inventory[wood] > 0 ) {    
                 imgWoodInventory.innerHTML = inventory[wood];
                 imgWoodInventory.style.backgroundImage = `url(${wood})`;
+            } else {
+                imgWoodInventory.innerHTML = "";
+                imgWoodInventory.style.backgroundImage = "";
             }
-            imgWoodInventory.addEventListener("click", clickedOnGrid);
         }
 
         function materialPicked(e) {
 
-            let row = e.target.style.gridRow;
-            let col = e.target.style.gridColumn;
+            //console.log("Material picked!!!");
+            //console.log(e.target.style.backgroundImage);
 
-            if (e.target == dirt && inventory[dirt] > 0) {
-                inventory[dirt]--;
-            }
-            else if (e.target == rock && inventory[rock] > 0) {
-                inventory[rock]--;
-            }
-            else if (e.target == wood && inventory[wood] > 0) {
-                inventory--;
-            }
+            imgDirtInventory.style.border = "none";
+            imgRockInventory.style.border = "none";
+            imgWoodInventory.style.border = "none";
+            pickaxe.style.border = "none";
+            shovel.style.border = "none";
+            axe.style.border = "none";
+
+            e.target.style.border = "3px solid blue";
+ 
+            let material = imageToMaterial(e.target.style.backgroundImage);
+
+            toolToBeUsed = material;
+
         }
 
+        //define click event handlers 
         pickaxe.addEventListener('click', toolPicked);
         axe.addEventListener('click', toolPicked);
         shovel.addEventListener('click', toolPicked);
-
+        imgDirtInventory.addEventListener("click", materialPicked);
+        imgRockInventory.addEventListener("click", materialPicked);
+        imgWoodInventory.addEventListener("click", materialPicked);
 
         //variables for the initWorld function
 
@@ -481,9 +475,9 @@
             let materialRemoved = checkGrid(myRow,myCol);
             // console.log(materialRemoved);
             // inventory[materialRemoved]++;
-            if (materialRemoved == "images/stone.png") inventory[rock]+=1;
-            if (materialRemoved == "images/dirt.png" || materialRemoved === "images/dirtAndGrass.png") inventory[dirt]+=1;
-            if (materialRemoved == "images/wood.png") inventory[wood]+=1;
+            if (materialRemoved == "images/stone.png") inventory[rock]++;
+            if (materialRemoved == "images/dirt.png" || materialRemoved === "images/dirtAndGrass.png") inventory[dirt]++;
+            if (materialRemoved == "images/wood.png") inventory[wood]++;
 
             // console.log("removed rock "+inventory[rock]);
             // console.log("removed dirt "+inventory[dirt]);
@@ -551,8 +545,10 @@
         let material = dirt;
         
         function clickedOnGrid (e) {
-            let row = e.target.style.gridRow;
-            let col = e.target.style.gridColumn;
+            if (toolToBeUsed == null) return;
+
+            let row = parseInt(e.target.style.gridRow);
+            let col = parseInt(e.target.style.gridColumn);
 
             if ((toolToBeUsed === pickaxe && checkGrid(row,col) === rock) ||
                (toolToBeUsed === shovel && (checkGrid(row,col) === dirt || checkGrid(row,col) === grass)) ||
@@ -563,7 +559,12 @@
             else
                 if (toolToBeUsed === dirt || toolToBeUsed == rock || toolToBeUsed === wood) {
                     console.log(toolToBeUsed);
-                    placeMaterial(row,col,toolToBeUsed);
+                    
+                    if (checkGrid(row,col) === empty && (checkGrid(row+1,col) !== empty) && (inventory[toolToBeUsed] > 0)) {
+                        placeMaterial(row,col,toolToBeUsed);
+                        inventory[toolToBeUsed]--;
+                        updateImgInventory();
+                    }
                 }
                 
             updateImgInventory();
